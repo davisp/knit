@@ -1,0 +1,11 @@
+{application, knit, [
+    {description, "Knit: Erlang Release/Upgrade Tools"},
+    {vsn, "0"},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        systools,
+        reltool
+    ]}
+]}.
