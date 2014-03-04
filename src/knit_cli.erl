@@ -6,7 +6,7 @@
 
 parse(Args) ->
     case getopt:parse(opts(), Args) of
-        {ok, {Opts, Commands}} ->
+        {ok, {Opts, Vars}} ->
             case lists:member(help, Opts) of
                 true -> usage();
                 false -> ok
@@ -15,14 +15,7 @@ parse(Args) ->
                 true -> version();
                 false -> ok
             end,
-            case Commands of
-                [] ->
-                    knit_log:error("You must specify at least one command."),
-                    usage();
-                _ ->
-                    ok
-            end,
-            {ok, Opts, Commands};
+            {ok, Opts, Vars};
         {error, {Reason, Data}} ->
             io:format(standard_error, "~p : ~p~n", [Reason, Data]),
             usage()
@@ -30,8 +23,8 @@ parse(Args) ->
 
 
 usage() ->
-    CliTail = "[command ...]",
-    OptsTail = [{"command", "Commands to execute."}],
+    CliTail = "[var ...]",
+    OptsTail = [{"var", "Set variables using the name=value syntax"}],
     getopt:usage(opts(), "knit", CliTail, OptsTail),
     knit_util:abort(1).
 
@@ -68,7 +61,7 @@ opt_verbose() ->
 
 
 opt_debug() ->
-    {debug, $d, "debug", undefined, "Set maximum verbosity logging."}.
+    {debug, $d, "debug", undefined, "Set debug verbosity logging."}.
 
 
 opt_quiet() ->

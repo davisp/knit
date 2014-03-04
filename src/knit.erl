@@ -5,13 +5,19 @@
 ]).
 
 
+steps() ->
+    [
+    ].
+
+
 main(Args) ->
-    {ok, Commands} = knit_cfg:init(Args),
-    execute(Commands).
-
-
-execute([]) ->
-    ok;
-execute([Command | Rest]) ->
-    knit_log:debug("Executing command: ~s", [Command]),
-    execute(Rest).
+    process_flag(trap_exit, true),
+    try
+        ok = knit_cfg:init(Args),
+        lists:foreach(fun({Mod, Fun}) ->
+            erlang:apply(Mod, Fun, [])
+        end, steps())
+    catch T:R ->
+        Stack = erlang:get_stacktrace(),
+        knit_log:error("~p~n~n~p~n", [{T,R}, Stack])
+    end.
