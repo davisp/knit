@@ -51,6 +51,12 @@ get(warnings_as_errors) ->
         {warnings_as_errors, true} -> true;
         _ -> false
     end;
+get(remove_tmp) ->
+    case get_config_key(remove_tmp) of
+        {remove_tmp, "false"} -> false;
+        {remove_tmp, false} -> false;
+        _ -> true
+    end;
 get(sys) ->
     {sys, Sys} = get_config_key(sys),
     Sys;

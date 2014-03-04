@@ -21,6 +21,14 @@ run() ->
             knit_log:warn("No versions available for upgrades.");
         Versions ->
             run(Versions)
+    end,
+    
+    case knit_cfg:get(remove_tmp) of
+        true ->
+            knit_log:info("Removing temp directory."),
+            knit_file:rm_rf(knit_cfg:get(tmp_dir));
+        false ->
+            ok
     end.
 
 
