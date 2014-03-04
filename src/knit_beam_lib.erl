@@ -1,16 +1,27 @@
+% Licensed under the Apache License, Version 2.0 (the "License"); you may not
+% use this file except in compliance with the License. You may obtain a copy of
+% the License at
+%
+%   http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+% WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+% License for the specific language governing permissions and limitations under
+% the License.
+
+% This reimplements beam_lib:cmp_dirs/2 because it detects differences
+% in abstract code even if that doesn't affect the module. This was
+% most obvious when different paths to eunit.hrl would cause a module
+% to be flagged as changed which leads to unnecessary upgrade
+% instructions.
+
 -module(knit_beam_lib).
 
 
 -export([
     cmp_dirs/2
 ]).
-
-
-% Reimplementing beam_lib's cmp_dir because it detects differences in
-% abstract code even if that doesn't affect the module. This was
-% most obvious when different paths to eunit.hrl would cause a module
-% to be flagged as changed which leads to unnecessary upgrade
-% instructions.
 
 
 cmp_dirs(Dir1, Dir2) ->
