@@ -76,24 +76,39 @@ run_systools(FromRels, ToRel) ->
     Paths = collect_paths([ToRel | FromRels]),
     UpRels = [RelFile || {RelFile, _Rel, _Apps} <- FromRels],
 
-    Src = knit_release:rel_file() ++ ".rel",
-    Dst = filename:join(".", BootRel ++ ".rel"),
-    knit_log:debug("Copying: ~s -> ~s", [Src, Dst]),
-    case file:copy(Src, Dst) of
-        {ok, _} ->
-            ok;
-        {error, Error} ->
-            Reason = file:format_error(Error),
-            ?IO_ERROR("Error creating ~s.rel: ~s", [BootRel, Reason])
+    % First things first, create a tmp directory containing
+    % the versioned rel file. This is mainly due to
+    % systools:make_tar/2 basing all of its work off the
+    % location and name of the rel file. For now I'll assume
+    % that no package has a version named "upgrade".
+    
+    UpgradeDir = knit_release:tmp_location("upgrade"),
+    case filelib:is_dir(UpgradeDir) of
+        true ->
+            ?IO_ERROR("Temp directory exists: ~s", [UpgradeDir]);
+        false ->
+            ok
     end,
+    knit_file:ensure_dir_exists(UpgradeDir),
+    copy_rel_file(UpgradeDir, BootRel),
 
-    make_relup(BootRel, UpRels, Paths),
-    make_script(BootRel, Paths),
-    make_tar(BootRel, Paths),
+    knit_file:do_in_dir(UpgradeDir, fun() ->
+        make_relup(BootRel, UpRels, Paths),
+        make_script(BootRel, Paths),
+        make_tar(BootRel, Paths),
+        update_tar(BootRelName, BootRelVsn, BootRel),
+        package_upgrade()
+    end),
 
     knit_log:info("Upgrade tarball created."),
     ok.
 
+
+copy_rel_file(UpgradeDir, BootRel) ->
+    Src = knit_release:rel_file() ++ ".rel",
+    Dst = filename:join(UpgradeDir, BootRel ++ ".rel"),
+    knit_file:copy(Src, Dst).
+    
 
 make_relup(BootRel, UpRels, Paths) ->
     case systools:make_relup(BootRel, UpRels, [], [silent, {path, Paths}]) of
@@ -142,6 +157,115 @@ make_tar(BootRel, Paths) ->
             Fmt = "Error creating upgrade tar: ~s",
             ?ABORT(Fmt, [Reason])
     end.
+
+
+update_tar(BootRelName, BootRelVsn, BootRel) ->
+    % We need to tweak the upgrade tarball a bit
+    % with some conveniences for running the node
+    % after a release has been applied.
+
+    TarFile = BootRel ++ ".tar.gz",
+    case erl_tar:extract(TarFile, [compressed]) of
+        ok ->
+            ok;
+        {error, Error} ->
+            Reason = erl_tar:format_error(Error),
+            Fmt = "Error extracting ~s: ~s",
+            ?ABORT(Fmt, [filename:basename(TarFile), Reason])
+    end,
+    ok = file:delete(TarFile),
+    
+    % Copy start.boot -> BootRelName.boot for consistency with
+    % normal release tarballs.
+    StartBootSrc = filename:join([
+            "releases",
+            BootRelVsn,
+            "start.boot"
+        ]),
+    StartBootDst = filename:join([
+            "releases",
+            BootRelVsn,
+            BootRelName ++ ".boot"
+        ]),
+    knit_file:copy(StartBootSrc, StartBootDst),
+
+    % Copy a start_clean.boot to the release for remsh or
+    % other scripts.
+    StartCleanBootSrc = filename:join([
+            knit_cfg:get(build_dir),
+            "releases",
+            BootRelVsn,
+            "start_clean.boot"
+        ]),
+    StartCleanBootDst = filename:join([
+            "releases",
+            BootRelVsn,
+            "start_clean.boot"
+        ]),
+    knit_file:copy(StartCleanBootSrc, StartCleanBootDst),
+
+    % Copy over sys.config and vm.args 
+    SysConfigSrc = filename:join([
+            knit_cfg:get(build_dir),
+            "releases",
+            BootRelVsn,
+            "sys.config"
+        ]),
+    SysConfigDst = filename:join([
+            "releases",
+            BootRelVsn,
+            "sys.config"
+        ]),
+    case filelib:is_regular(SysConfigSrc) of
+        true ->
+            knit_file:copy(SysConfigSrc, SysConfigDst);
+        false ->
+            ok
+    end,
+    
+    VmArgsSrc = filename:join([
+            knit_cfg:get(build_dir),
+            "releases",
+            BootRelVsn,
+            "vm.args"
+        ]),
+    VmArgsDst = filename:join([
+            "releases",
+            BootRelVsn,
+            "vm.args"
+        ]),
+    case filelib:is_regular(VmArgsSrc) of
+        true ->
+            knit_file:copy(VmArgsSrc, VmArgsDst);
+        false ->
+            ok
+    end.
+
+
+package_upgrade() ->
+    TarFile = knit_vsn:upgrade_tarball(),
+    
+    Force = knit_cfg:get(force),
+    case filelib:is_file(TarFile) of
+        true when Force ->
+            knit_log:info("Overwriting: ~s", [TarFile]),
+            knit_file:rm_rf(TarFile);
+        true ->
+            ?IO_ERROR("Refusing to overwrite: ~s", [TarFile]);
+        false ->
+            ok
+    end,
+    
+    Tar = case erl_tar:open(TarFile, [write, compressed]) of
+        {ok, Tar0} ->
+            Tar0;
+        {error, Error} ->
+            OpenFmt = "Error creating tar file ~s: ~s",
+            ?IO_ERROR(OpenFmt, [TarFile, erl_tar:format_error(Error)])
+    end,
+    ok = erl_tar:add(Tar, "lib", []),
+    ok = erl_tar:add(Tar, "releases", []),
+    ok = erl_tar:close(Tar).
 
 
 collect_paths(Rels) ->

@@ -7,6 +7,7 @@
     cp_r/2,
     mv/2,
     rm_rf/1,
+    copy/2,
     copy_file_info/2,
     ensure_dir_exists/1
 ]).
@@ -55,6 +56,16 @@ mv(Src, Dst) ->
 
 rm_rf(Path) ->
     os_invoke(rm_rf, [Path]).
+
+
+copy(Src, Dst) ->
+    case file:copy(Src, Dst) of
+        {ok, _} ->
+            ok;
+        {error, Error} ->
+            Reason = file:format_error(Error),
+            ?IO_ERROR("Error copynig ~s -> ~s: ~s", [Src, Dst, Reason])
+    end.
 
 
 copy_file_info(Src, Dst) ->
