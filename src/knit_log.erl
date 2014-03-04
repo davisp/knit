@@ -2,7 +2,7 @@
 
 -export([
     error/1, error/2,
-    warn/1, warn/2,    
+    warn/1, warn/2,
     info/1, info/2,
     debug/1, debug/2,
 

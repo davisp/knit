@@ -7,6 +7,10 @@
 
 steps() ->
     [
+        {knit_reltool, run},
+        {knit_overlay, run},
+        {knit_release, package},
+        {knit_upgrade, run}
     ].
 
 
