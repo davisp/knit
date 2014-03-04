@@ -30,7 +30,7 @@ trace(Msg, File, Line) ->
     trace(Msg, [], File, Line).
 
 trace(Msg0, Args, File, Line) ->
-     Prefix = lists:flatten(io_lib:format("~s(~b)", [File, Line])),
+     Prefix = lists:flatten(io_lib:format("~s(~b) ", [File, Line])),
      log(trace, Prefix ++ Msg0, Args).
 
 
