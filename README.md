@@ -50,8 +50,7 @@ Historically the process of generating these appups has been rather painful
 even when using the various release tools. Knits entire motivation for
 existence is to improve the process around handling these appup files while
 making sure the rest of the release/upgrade generation is as painless as
-possible. For a comparison with rebar and relx see the section at the bottom
-of this README for an (admittedly biased) explanation.
+possible.
 
 For more information on appups see this [LYSE section][LYSE-appups], the
 [Erlang docs on appups][erlang-appups], or the
@@ -100,6 +99,31 @@ historically not been the most well documented or easiest to use. Knit tries
 to make the rest of those steps as painless as possible. See the section
 "How Knit Helps with Appups" below for a much more detailed description of
 these steps as well as knit is actually doing that's new.
+
+
+A Primer on Upgrades
+--------------------
+
+What do we do with upgrade tarballs once we have them?
+  - Where do I put them?
+  - How do I actually apply an upgrade?
+  - What's the life cycle of an upgrade?
+  - When does Pre and Post purging happen?
+
+
+A Primer on Relup/Appup Instructions
+------------------------------------
+
+List the most common instructions and use cases for background.
+
+`add_module`
+`load_module`
+`delete_module`
+`upgrade` - supervisor and code changes styles
+  - suspend/resume/code change instructions generated for relup
+`add_application`
+`delete_application`
+`restart_application` - Need to figure out a syntax for specifying this
 
 
 Building Knit
@@ -168,11 +192,11 @@ The `knit` command is fairly basic. The help output looks like such:
 
       -h, --help            Show this help message and exit.
       -V, --version         Show version information and exit.
-      -v, --verbose         Set verbose output. Can be repeated for increased 
+      -v, --verbose         Set verbose output. Can be repeated for increased
                             verbosity.
       -d, --debug           Set debug verbosity logging.
       -q, --quiet           Disable all output to the console.
-      -l, --log_file        Log all output to the specified file. Unaffected 
+      -l, --log_file        Log all output to the specified file. Unaffected
                             when using quiet.
       -r, --reltool_config  Path to your reltool.config
       var                   Set variables using the name=value syntax
@@ -235,7 +259,7 @@ something like such:
         {profile, embedded},
         {excl_sys_filters, ["^bin/.*", "^erts.*/bin/(dialyzer|typer)"]},
         {excl_archive_filters, [".*"]},
-    
+
         {app, my_cool_app, [{incl_cond, include}]}
     ]}.
 
@@ -271,7 +295,7 @@ dependencies listed in `my_cool_app.app`.
 For now its best to just ignore the `excl_sys_filters` and
 `excl_archive_filters`. When you need to learn the details for these options
 you'll be far along enough that the man pages make sense.
-    
+
 For an extended description of all of the possible `sys` options the write
 up by [LYSE][LYSE-releases] is probably the best place to check. There's a
 section labeled "Releases with Reltools" towards the bottom that's helpful.
@@ -288,7 +312,7 @@ a `reltool.config` with knit configuration values would look like such:
 
     {knit_option_1, knit_value_1}.
     {knit_option_2, knit_option_2}.
-    
+
     {sys, [
         {lib_dirs, ["../apps", "../deps"]},
         {rel, "dbcore", git, [
@@ -301,12 +325,12 @@ a `reltool.config` with knit configuration values would look like such:
         {profile, embedded},
         {excl_sys_filters, ["^bin/.*", "^erts.*/bin/(dialyzer|typer)"]},
         {excl_archive_filters, [".*"]},
-        
+
         {app, my_cool_app, [{incl_cond, include}]}
     ]}.
 
 It doesn't matter where in the file you place things, its just important to
-note that they aren't nested inside the `sys` tuple.    
+note that they aren't nested inside the `sys` tuple.
 
 The current list of recognized congfiguration options:
 
@@ -517,6 +541,7 @@ Supported module attributes:
   per-application basis. There's no support (yet) for a global ordering. This
   will be added if/when is needed.
 
+
 A Note on Module Dependencies
 -----------------------------
 
@@ -537,3 +562,28 @@ suspended simultaneously.
 In general its best to try and make sure that your modules can be upgraded
 independently but sometimes a simple dependency will save you lots of pain
 trying to support multiple live module versions.
+
+
+Motivational Use Cases
+----------------------
+
+=== Show how -vsn works
+
+Not a knit thing, but a useful thing to show.
+
+=== Module dependencies `couch_server/couch_lru`
+
+Yep
+
+=== Priority instead of dependencies
+
+Sometimes easier
+
+=== Changing a supervisor's child specs (and making them a reality)
+
+Stuff
+
+=== Testing an upgrade? Add apply calls to timer:sleep?
+
+Might work?
+
